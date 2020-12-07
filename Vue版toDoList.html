@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>ToDoList</title>
+		<style>
+			*{padding: 0;margin: 0;}
+			ul,ol{list-style: none;}
+			body{background-color: #cdcdcd;}
+			.container-flu{width: 100%;}
+			.container{width: 744px;margin: 0 auto;}
+			header{height: 63px;background-color: #323232;}
+			.headerBox {position: relative;}
+			.headerBox h1{font-size: 26px;line-height: 63px;color: #dddddd;font-weight: normal;}
+			.headerBox input{position: absolute;right: 0;top:13px;height: 34px;width: 453px;outline: none;font-size: 18px;
+			border-radius: 8px;color: #757575;padding-left: 15px;}
+			.container h2{height: 88px;font-size: 30px;line-height: 88px;}
+			.doingBox,.doneBox{position: relative;}
+			.container div{position: absolute;right: 8px;top: 29px;box-sizing: border-box;width: 24px;height: 27px;border-radius: 50%;
+			background-color: #e6e6fa;text-align: center;font-size: 16px;line-height: 27px;color: #666666;}
+			.doList li{height: 42px;border-radius: 5px;background-color: #ffffff;border-left: #629a9c 7px solid;margin-bottom: 10px;
+			position: relative;}
+			.doList li input{width: 28px;height: 28px;position: absolute;left: 16px;top: 7px;}
+			.doList li p,.doList li .edit{margin-left: 57px;font-size: 20px;line-height: 42px;}
+			.doList li span{display: inline-block;width: 28px;height: 28px;border-radius: 50%;background-color: #cccccc;border: white 6px double;position: absolute;right: 9px;top: 5px;box-sizing: border-box;cursor: pointer;color: white;text-align: center;line-height: 16px;font-size: 16px;}
+			.doList li:last-child{margin-bottom: 0;}
+			.done{opacity: .5;}
+			footer{text-align: center;padding-top: 24px;}
+			.doList li .edit{width: 600px;margin-left: 40px;z-index: 999;}
+		</style>
+		<script src="../js/vue.js"></script>
+	</head>
+	<body>
+		<div id="todoapp">
+			<header class="container-flu">
+				<div class="container headerBox">
+					<h1>ToDoList</h1>
+					<input type="text" placeholder="添加ToDo" id="add" v-model="inputValue" @keyup.enter="add">
+				</div>
+			</header>
+			<section class="container doingBox">
+				<h2>正在进行</h2>
+				<div>{{getDoingItem()}}</div>
+			<ul class="doList doing">
+				<li v-for="(item,index) in dataList" v-show="!item.done">
+					<input type="checkbox" @click="done(index)" v-bind:checked="item.done">
+					<p @dblclick="edit(index)" v-show="!flag[index]">{{item.doing}}</p>
+					<input type="text" class="edit" v-model="dataList[index].doing" v-show="flag[index]" :autofocus="flag[index]" @blur="comp(index)" @keyup.enter="comp(index)" v-focus="focusState" />
+					<span @click="remove(index)">-</span>
+				</li>
+			</ul>
+			</section>
+			<section class="container doneBox">
+				<h2>已经完成</h2>
+				<div>{{dataList.length-getDoingItem()}}</div>
+			<ol class="doList done">
+				<li v-for="(item,index) in dataList" v-show="item.done">
+					<input type="checkbox" @click="done(index,false)" v-bind:checked="item.done">
+					<p>{{item.doing}}</p>
+					<span @click="remove(index,false)">-</span>
+				</li>
+			</ol>
+			</section>
+			<footer class="container">
+				Copyright © 2014 todolist.cn
+			</footer>
+		</div>
+	</body>
+	<script>
+		var todoapp = new Vue({
+			el:"#todoapp",
+			data:{
+				dataList:localStorage.getItem("toDoListVue")?JSON.parse(localStorage.getItem("toDoListVue")):[],
+				flag:[],
+				content:[],
+				inputValue: "",
+				tempStr:"",
+				focusState:false
+			},
+			methods:{
+				add:function(){
+					if(this.inputValue.trim() === ''){
+						return false;
+					}
+					this.dataList.unshift({doing:this.inputValue,done:false});
+					// localStorage.setItem("toDoListVue",JSON.stringify(this.dataList));
+					// localStorage.setItem("doingNum",this.doingNum);
+					this.inputValue = '';
+					this.save;
+					},
+				remove:function(index){
+					this.dataList.splice(index,1);
+					// localStorage.setItem("toDoListVue",JSON.stringify(this.dataList));
+					// localStorage.setItem("doingNum",this.doingNum);
+					this.save;
+				},
+				done:function(index,flag){
+					this.dataList[index].done = !this.dataList[index].done;
+					// localStorage.setItem("toDoListVue",JSON.stringify(this.dataList));
+					// localStorage.setItem("doingNum",this.doingNum);
+					this.save;
+				},
+				//编辑要咋办？
+				edit:function(index){
+					window.getSelection ? window.getSelection().removeAllRanges() : document.selection.empty();
+					// this.flag[index] = true 数组直接这样设置不能反映到dom元素上
+					this.$set(this.flag,index,true);
+					this.tempStr = this.dataList[index].doing;
+					this.focusState = true;
+				},
+				comp:function(index){
+					if(this.dataList[index].doing.trim() === '' || this.dataList[index].doing.trim() === this.tempStr){
+						this.dataList[index].doing = this.tempStr;
+					} else{
+						this.tempStr = '';
+						// localStorage.setItem("toDoListVue",JSON.stringify(this.dataList));
+						this.save;
+					}
+					this.$set(this.flag,index,false);
+				},
+				getDoingItem:function(){
+					let num = 0;
+					if(this.dataList === []) return num;
+					for(let obj of this.dataList){
+						num = obj.done == false?++num:num;
+					}
+					return num;
+				}
+			},
+			computed:{
+				save:function(){
+					localStorage.setItem("toDoListVue",JSON.stringify(this.dataList));
+				},
+			},
+			//超纲：自定义组件
+			directives: { 
+				focus: { 
+					update: function (el, {value}) {
+						if (value) {
+							el.select();
+						}
+					}
+				},
+			},
+		})
+	</script>
+</html>
